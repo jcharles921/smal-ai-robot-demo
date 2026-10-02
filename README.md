@@ -1,93 +1,155 @@
-# AI_MINI_ROBOT
+# Home Robot Starter
 
+A small, working starting point for home robotics with **ROS 2 Jazzy + Gazebo + linorobot2**, in two parts:
 
+| Part | What it is | Needs | Time to first run |
+|---|---|---|---|
+| **A. `demo/`** | A 2D robot that explores an apartment with a simulated LiDAR and builds a map live | Python 3 only | ~1 minute |
+| **B. `ros2_ws/` + `scripts/`** | The real thing: linorobot2 in Gazebo, SLAM Toolbox, Nav2, plus your own ROS 2 node (`home_explorer`) that drives the robot autonomously | Ubuntu 24.04 (native or WSL2) | ~30–60 min (mostly downloads) |
 
-## Getting started
-
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+Part A uses **the same exploration algorithm** as the ROS 2 node in part B, so what you see in the demo is what the robot does in Gazebo.
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.dccsintra.net/sandbox/cmwunguz/ai_mini_robot.git
-git branch -M main
-git push -uf origin main
+home_robot_starter/
+├── demo/
+│   ├── sim_demo.py          ← run this now
+│   ├── run_demo.bat         ← Windows: double-click
+│   └── run_demo.sh          ← Linux / macOS / WSL
+├── ros2_ws/src/home_explorer/   ← your ROS 2 package
+│   ├── home_explorer/controller.py     exploration logic (pure Python, unit-tested)
+│   ├── home_explorer/explorer_node.py  /scan → /cmd_vel node
+│   ├── config/explorer.yaml            tuning
+│   ├── launch/explore.launch.py
+│   └── test/test_controller.py
+└── scripts/
+    ├── 1_install_ros2_jazzy.sh   ROS 2 Jazzy + Gazebo Harmonic + Nav2 + SLAM Toolbox
+    ├── 2_setup_workspace.sh      clones linorobot2, rosdep, colcon build
+    └── run.sh                    gazebo | check | slam | explore | teleop | savemap | nav
 ```
 
-## Integrate with your tools
+---
 
-* [Set up project integrations](https://gitlab.dccsintra.net/sandbox/cmwunguz/ai_mini_robot/-/settings/integrations)
+## A. Run the demo right now
 
-## Collaborate with your team
+**Windows:** install Python from python.org (tick *Add python.exe to PATH*), then double-click `demo\run_demo.bat`.
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+**Linux / macOS / WSL:**
+```bash
+bash demo/run_demo.sh
+```
+(or `pip install numpy matplotlib` then `python3 demo/sim_demo.py`)
 
-## Test and Deploy
+You get two panels: the left is the "real" world (like Gazebo) with LiDAR beams in red; the right is the map the robot builds from those beams (like the `/map` that SLAM Toolbox publishes). The status bar shows the `/cmd_vel` it is sending.
 
-Use the built-in continuous integration in GitLab.
+| Key | Action |
+|---|---|
+| `m` | toggle AUTO / MANUAL |
+| arrow keys | drive in MANUAL (↑↓ speed, ←→ turn) |
+| space | stop |
+| `r` | reset robot and map |
+| `p` | save the map to `map.png` |
+| `q` | quit |
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+No window available (SSH, server)? `python3 demo/sim_demo.py --headless` saves `demo_result.png` after 4 simulated minutes. In testing it maps about 80% of the apartment in 5 simulated minutes without hitting anything.
 
-***
+**Things to try:** edit `build_world()` to draw your own home, or change `ExplorerController`'s `stop_dist` / `max_speed` and watch how behaviour changes.
 
-# Editing this README
+---
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## B. The full ROS 2 + Gazebo + linorobot2 setup
 
-## Suggestions for a good README
+linorobot2's current branch is **`jazzy`**, which means **Ubuntu 24.04 + ROS 2 Jazzy + Gazebo Harmonic**.
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+### 0. Windows only: get Ubuntu 24.04 via WSL2
+In PowerShell (as administrator, once):
+```powershell
+wsl --install -d Ubuntu-24.04
+```
+Reboot if asked, open "Ubuntu 24.04" from the Start menu and create a user. Windows 11 shows Linux GUI apps (Gazebo, RViz) automatically.
 
-## Name
-Choose a self-explaining name for your project.
+Copy this project **into the Linux side** (building on `/mnt/c` is very slow):
+```bash
+cp -r /mnt/c/Users/<YOU>/Downloads/home_robot_starter ~/
+cd ~/home_robot_starter
+```
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+### 1. Install ROS 2 Jazzy (one time, ~10–30 min)
+```bash
+bash scripts/1_install_ros2_jazzy.sh
+```
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+### 2. Build the workspace (one time, ~5 min)
+```bash
+bash scripts/2_setup_workspace.sh          # or: ... 4wd / mecanum
+source ~/.bashrc
+```
+This clones `linorobot2` (branch `jazzy`) and `linorobot2_viz` into `ros2_ws/src/` next to `home_explorer`, installs dependencies with rosdep (skipping the micro-ROS keys, as linorobot2's docs recommend), builds, and sets `LINOROBOT2_BASE`.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+### 3. Run it: one command per terminal
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+```bash
+# Terminal 1 - Gazebo with the robot
+bash scripts/run.sh gazebo                 # or: bash scripts/run.sh gazebo playground
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+# Terminal 2 - sanity check before SLAM: /scan rate, topics, odom→base_footprint TF
+bash scripts/run.sh check
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+# Terminal 2 - SLAM Toolbox + RViz: the map appears as the robot moves
+bash scripts/run.sh slam
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+# Terminal 3 - your node drives the robot around by itself
+bash scripts/run.sh explore
+#   pause:  ros2 param set /explorer enabled false
+#   or drive yourself instead:  bash scripts/run.sh teleop
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+# When the map looks complete
+bash scripts/run.sh savemap my_home
+```
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+Then navigate on the saved map (stop SLAM and the explorer first):
+```bash
+bash scripts/run.sh nav ros2_ws/maps/my_home.yaml
+```
+In RViz click **2D Pose Estimate** where the robot is, then **2D Goal Pose** somewhere else, and Nav2 drives there.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+**Gazebo window black or blank on WSL2?** Add `--soft` at the end: `bash scripts/run.sh gazebo --soft` (software rendering: slower, but works).
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+### How the pieces talk
 
-## License
-For open source projects, say how it is licensed.
+```
+Gazebo (linorobot2_gazebo)
+   │  /scan  (LaserScan, via ros_gz_bridge)
+   │  /odom, /imu, /tf
+   ▼
+home_explorer/explorer_node ──/cmd_vel (Twist)──► Gazebo diff-drive plugin
+   │
+SLAM Toolbox (linorobot2_navigation slam.launch.py)
+   reads /scan + TF ──► publishes /map and map→odom TF ──► RViz
+```
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+`explorer_node` only uses `/scan` and `/cmd_vel`, the same interface a physical linorobot2 exposes, so it runs on real hardware too with `ros2 launch home_explorer explore.launch.py sim:=false`. Test in simulation first, and keep a hand near the power switch.
+
+### Tuning (`ros2_ws/src/home_explorer/config/explorer.yaml`)
+| Param | Default | Meaning |
+|---|---|---|
+| `max_speed` | 0.25 m/s | top forward speed |
+| `stop_dist` | 0.6 m | obstacle ahead closer than this → turn in place |
+| `side_dist` | 0.32 m | obstacle at the side closer than this → turn away |
+| `max_runtime_s` | 0 | stop after N seconds (0 = never) |
+
+Change params live: `ros2 param set /explorer max_speed 0.15`. Because of `--symlink-install`, edits to Python files take effect the next time you launch, no rebuild needed (rebuild after adding new files).
+
+Run the unit tests (no ROS needed): `cd ros2_ws/src/home_explorer && python3 -m pytest test/`
+
+---
+
+## Next steps
+1. **Your own world:** `ros2 run linorobot2_gazebo image_to_gazebo` turns a floor-plan image of your home into a Gazebo world, then `bash scripts/run.sh gazebo <world_name>`.
+2. **Smarter exploration:** subscribe to `/map` in `explorer_node` and steer toward frontiers (edges between known-free and unknown cells) instead of random curiosity.
+3. **Send Nav2 goals from code:** use `nav2_simple_commander` (`BasicNavigator.goToPose`) to build a "patrol the rooms" node.
+4. **Real hardware:** follow [linorobot2_hardware](https://github.com/linorobot/linorobot2_hardware); the same SLAM/Nav2 launch files work without `sim:=true`.
+
+## References
+- linorobot2: https://github.com/linorobot/linorobot2 · docs: https://linorobot.github.io/linorobot2/
+- ROS 2 Jazzy install: https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html
+- Nav2 setup guides: https://docs.nav2.org/setup_guides/index.html
