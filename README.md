@@ -10,7 +10,7 @@ A small, working starting point for home robotics with **ROS 2 Jazzy + Gazebo + 
 Part A uses **the same exploration algorithm** as the ROS 2 node in part B, so what you see in the demo is what the robot does in Gazebo.
 
 ```
-home_robot_starter/
+smal-ai-robot-demo/
 ├── demo/
 │   ├── sim_demo.py          ← run this now
 │   ├── run_demo.bat         ← Windows: double-click
@@ -29,17 +29,47 @@ home_robot_starter/
 
 ---
 
-## A. Run the demo right now
+## A. Run the demo (Python only, about 1 minute)
 
-**Windows:** install Python from python.org (tick *Add python.exe to PATH*), then double-click `demo\run_demo.bat`.
+**What you'll see:** a robot (the blue dot) drives itself around an apartment it has never seen. It uses a laser scanner (the red lines) to avoid walls and furniture, and as it moves it draws its own map of the place (the right panel), filling in the rooms it has explored.
 
-**Linux / macOS / WSL:**
+### 1. Get the code
+
 ```bash
-bash demo/run_demo.sh
+git clone https://gitlab.dccsintra.net/sandbox/cmwunguz/ai_mini_robot.git
+cd ai_mini_robot
 ```
-(or `pip install numpy matplotlib` then `python3 demo/sim_demo.py`)
 
-You get two panels: the left is the "real" world (like Gazebo) with LiDAR beams in red; the right is the map the robot builds from those beams (like the `/map` that SLAM Toolbox publishes). The status bar shows the `/cmd_vel` it is sending.
+No git? On the GitHub page, click **Code → Download ZIP** and unzip it.
+
+### 2. Install Python and the two libraries
+
+The demo needs **Python 3.9 or newer** (check with `python3 --version`, or `python --version` on Windows) and two libraries, `numpy` and `matplotlib`, which are listed in `demo/requirements.txt`.
+
+- **Windows:** install Python from [python.org](https://www.python.org/downloads/) and tick **Add python.exe to PATH** in the installer. That's all; `run_demo.bat` installs the libraries for you.
+- **macOS:** install Python from python.org, or with Homebrew (`brew install python`). `run_demo.sh` installs the libraries for you.
+- **Ubuntu / Debian / WSL:**
+  ```bash
+  sudo apt install python3 python3-pip python3-venv python3-tk
+  ```
+  `python3-tk` is what lets matplotlib open a window. Ubuntu 24.04 refuses system-wide `pip install`, so put the libraries in a virtual environment:
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  pip install -r demo/requirements.txt
+  ```
+  Run `source .venv/bin/activate` again in each new terminal before starting the demo.
+
+### 3. Run it
+
+| Where | Command |
+|---|---|
+| Windows | double-click `demo\run_demo.bat`, or run `python demo\sim_demo.py` |
+| macOS / Linux / WSL | `bash demo/run_demo.sh` |
+| Inside a virtual environment | `python demo/sim_demo.py` |
+| GitHub Codespaces, SSH, or a server | the same command; see below |
+
+With a screen, a window opens with two panels. The left is the "real" world (like Gazebo) with the LiDAR beams in red. The right is the map the robot builds from those beams (like the `/map` that SLAM Toolbox publishes). The status bar shows the `/cmd_vel` it is sending. Click inside the window, then use:
 
 | Key | Action |
 |---|---|
@@ -50,9 +80,29 @@ You get two panels: the left is the "real" world (like Gazebo) with LiDAR beams 
 | `p` | save the map to `map.png` |
 | `q` | quit |
 
-No window available (SSH, server)? `python3 demo/sim_demo.py --headless` saves `demo_result.png` after 4 simulated minutes. In testing it maps about 80% of the apartment in 5 simulated minutes without hitting anything.
+**No screen (Codespaces, SSH, a server):** the demo detects this and records `demo.gif` instead. That's a 20-second clip of 90 simulated seconds, and it takes about a minute to render. In VS Code or Codespaces, right-click the file in the explorer and choose **Open Preview**.
 
-**Things to try:** edit `build_world()` to draw your own home, or change `ExplorerController`'s `stop_dist` / `max_speed` and watch how behaviour changes.
+### Other options
+
+| Command | What it does |
+|---|---|
+| `python3 demo/sim_demo.py --gif` | record `demo.gif` even when you have a screen |
+| `python3 demo/sim_demo.py --gif run.gif --seconds 180` | longer recording with your own file name |
+| `python3 demo/sim_demo.py --headless` | no animation: simulates about 4 minutes, then saves one picture, `demo_result.png`, and prints how much was mapped |
+| `python3 demo/sim_demo.py -h` | list all options |
+
+Output files (`demo.gif`, `demo_result.png`, `map.png`) are saved in the folder you run the command from. With `run_demo.sh` or `run_demo.bat`, that's `demo/`. In testing, the robot maps about 80% of the apartment in 5 simulated minutes without hitting anything.
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| No window opens and you see `UserWarning: Animation was deleted without rendering anything` | On Ubuntu with a screen, install `python3-tk` (`sudo apt install python3-tk`). On a machine with no screen, add `--gif`. |
+| `error: externally-managed-environment` when installing with pip | Use the virtual environment steps in step 2. |
+| `python3` not found on Windows | Use `python` or `py` instead, or reinstall Python with **Add python.exe to PATH** ticked. |
+| The keys do nothing | Click inside the window first so it has keyboard focus. |
+
+**Things to try:** edit `build_world()` in `demo/sim_demo.py` to draw your own home, or change `ExplorerController`'s `stop_dist` / `max_speed` and watch how the behaviour changes.
 
 ---
 
@@ -67,10 +117,10 @@ wsl --install -d Ubuntu-24.04
 ```
 Reboot if asked, open "Ubuntu 24.04" from the Start menu and create a user. Windows 11 shows Linux GUI apps (Gazebo, RViz) automatically.
 
-Copy this project **into the Linux side** (building on `/mnt/c` is very slow):
+Clone the project **inside the Linux side**, not under `/mnt/c`, where builds are very slow:
 ```bash
-cp -r /mnt/c/Users/<YOU>/Downloads/home_robot_starter ~/
-cd ~/home_robot_starter
+git clone https://github.com/jcharles921/smal-ai-robot-demo.git ~/smal-ai-robot-demo
+cd ~/smal-ai-robot-demo
 ```
 
 ### 1. Install ROS 2 Jazzy (one time, ~10–30 min)
