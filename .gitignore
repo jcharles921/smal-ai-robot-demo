@@ -1,1 +1,4 @@
 ros2_ws/build
+.venv/
+demo/*.gif
+demo/*_result.png
