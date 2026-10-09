@@ -948,7 +948,7 @@ class FetchSim:
                 self.search_room = room
                 self.say(f"Robot: Going to look around the {room}.")
                 return self.set_phase("goto_room")
-            self.say("Robot: Exploring the home and taking note of everything I see.")
+            self.say("Robot: Exploring everywhere and taking note of everything I see.")
             return self.set_phase("look")
         if kind == "home":
             self.say("Robot: Coming to you.")
